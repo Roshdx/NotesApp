@@ -1,0 +1,41 @@
+Create network
+docker network create notes-net 2>/dev/null || true
+
+Run Mongo
+docker run -d --name notes-mongo --network notes-net -p 27017:27017 -v mongo-data:/data/db mongo:6.0
+
+Build Eureka JAR
+cd eureka-server && mvn -DskipTests clean package && cd ..
+
+Build API Gateway JAR
+cd api-gateway && mvn -DskipTests clean package && cd ..
+
+Build Userservice JAR
+cd userservice && mvn -DskipTests clean package && cd ..
+
+Build Eureka image
+cd eureka-server && docker build -t notesapp-eureka-server:latest . && cd ..
+
+Build API Gateway image
+cd api-gateway && docker build -t notesapp-api-gateway:latest . && cd ..
+
+Build Userservice image
+cd userservice && docker build -t notesapp-userservice:latest . && cd ..
+
+Run Eureka
+docker run -d --name eureka-server --network notes-net -p 8761:8761 notesapp-eureka-server:latest
+
+Run API Gateway
+docker run -d --name api-gateway --network notes-net -p 8080:8080 notesapp-api-gateway:latest
+
+Run Userservice
+docker run -d --name userservice --network notes-net -p 8081:8081 -e SPRING_DATA_MONGODB_URI=mongodb://notes-mongo:27017/notesdb notesapp-userservice:latest
+
+Stop all three services
+docker stop eureka-server api-gateway userservice
+
+Remove all three services
+docker rm eureka-server api-gateway userservice
+
+Full reset (containers + images + network + volume)
+docker stop eureka-server api-gateway userservice notes-mongo 2>/dev/null || true && docker rm eureka-se

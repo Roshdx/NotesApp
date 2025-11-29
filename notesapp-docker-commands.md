@@ -58,6 +58,19 @@ docker run -d --name api-gateway --network notes-net -p 8080:8080 notesapp-api-g
 docker run -d --name userservice --network notes-net -p 8081:8081 notesapp-userservice:latest
 ```
 
+###Create the network manually (optional)
+```
+docker network create notes-net
+docker network ls
+```
+
+###Start MongoDB manually (outside compose)
+```
+docker run -d --name notes-mongo -p 27017:27017 -v mongo-data:/data/db --network notes-net mongo:6.0
+docker network ls
+docker logs notes-mongo --tail 100
+```
+
 ## 7. Remove Containers
 ```
 docker rm -f eureka-server api-gateway userservice
