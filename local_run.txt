@@ -39,3 +39,5 @@ docker rm eureka-server api-gateway userservice
 
 Full reset (containers + images + network + volume)
 docker stop eureka-server api-gateway userservice notes-mongo 2>/dev/null || true && docker rm eureka-server api-gateway userservice notes-mongo 2>/dev/null || true && docker rmi notesapp-eureka-server:latest notesapp-api-gateway:latest notesapp-userservice:latest 2>/dev/null || true && docker network rm notes-net 2>/dev/null || true && docker volume rm mongo-data 2>/dev/null || true
+
+hiiii
