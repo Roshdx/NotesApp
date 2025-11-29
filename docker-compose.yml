@@ -99,6 +99,30 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+  notes-service:
+    build:
+      context: ./notes-service
+      dockerfile: Dockerfile
+    image: notesapp-notes-service:latest
+    container_name: notes-service
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_PROFILES_ACTIVE=default
+      - SPRING_DATA_MONGODB_URI=mongodb://notes-mongo:27017/notesdb
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka-server:8761/eureka/
+    networks:
+      - notes-net
+    depends_on:
+      - notes-mongo
+      - eureka-server
+    restart: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8082/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
 volumes:
   mongo-data:
