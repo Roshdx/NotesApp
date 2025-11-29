@@ -56,6 +56,12 @@ services:
     depends_on:
       - eureka-server
     restart: on-failure
+    command: >
+      sh -c "until curl -fsS http://eureka-server:8761/actuator/health; do
+              echo 'Waiting for Eureka...';
+              sleep 2;
+            done;
+            java -jar /app/api-gateway.jar"
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
       interval: 10s
@@ -81,6 +87,12 @@ services:
       - notes-mongo
       - eureka-server
     restart: on-failure
+    command: >
+          sh -c "until curl -fsS http://eureka-server:8761/actuator/health >/dev/null 2>&1; do
+                  echo 'Waiting for Eureka...';
+                  sleep 2;
+                done;
+                exec java -jar /app/userservice.jar"
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8081/actuator/health || exit 1"]
       interval: 10s
