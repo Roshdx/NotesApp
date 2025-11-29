@@ -1,20 +1,6 @@
-version: '3.8'
-
+# no "version:" field to avoid the obsolete warning
 services:
-  eureka-server:
-    build:
-      context: ./eureka-server
-      dockerfile: Dockerfile
-    container_name: eureka-server
-    ports:
-      - "8761:8761"
-    environment:
-      - SPRING_PROFILES_ACTIVE=default
-    networks:
-      - notes-net
-    restart: on-failure
-
-  mongo:
+  notes-mongo:
     image: mongo:6.0
     container_name: notes-mongo
     ports:
@@ -24,41 +10,83 @@ services:
     networks:
       - notes-net
     restart: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "mongo --eval 'db.runCommand({ ping: 1 })' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
-  userservice:
+  eureka-server:
     build:
-      context: ./userservice
+      context: ./eureka-server
       dockerfile: Dockerfile
-    container_name: userservice
-    depends_on:
-      - eureka-server
-      - mongo
+    image: notesapp-eureka-server:latest
+    container_name: eureka-server
     ports:
-      - "8081:8081"
+      - "8761:8761"
     environment:
       - SPRING_PROFILES_ACTIVE=default
-      # If you prefer environment override instead of application.properties:
-      # - SPRING_DATA_MONGODB_URI=mongodb://mongo:27017/notesdb
-      # - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
     networks:
       - notes-net
+    depends_on:
+      - notes-mongo
     restart: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8761/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   api-gateway:
     build:
       context: ./api-gateway
       dockerfile: Dockerfile
+    image: notesapp-api-gateway:latest
     container_name: api-gateway
-    depends_on:
-      - eureka-server
     ports:
       - "8080:8080"
     environment:
       - SPRING_PROFILES_ACTIVE=default
-      # - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
     networks:
       - notes-net
+    depends_on:
+      - eureka-server
     restart: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  userservice:
+    build:
+      context: ./userservice
+      dockerfile: Dockerfile
+    image: notesapp-userservice:latest
+    container_name: userservice
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=default
+      - SPRING_DATA_MONGODB_URI=mongodb://notes-mongo:27017/notesdb
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+    networks:
+      - notes-net
+    depends_on:
+      - notes-mongo
+      - eureka-server
+    restart: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
 volumes:
   mongo-data:
