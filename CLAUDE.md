@@ -16,6 +16,7 @@ The application follows a microservices pattern with the following components:
 2. **api-gateway** (Port 8080): Spring Cloud Gateway - reactive gateway that routes requests to microservices using service discovery
 3. **userservice** (Port 8081): User management service with MongoDB persistence
 4. **notes-service** (Port 8082): Notes management service with MongoDB persistence and OAuth2 resource server security
+5. **frontend** (Port 3000): React-based notes application UI with Vite and Nginx
 
 ### Service Communication
 
@@ -26,6 +27,7 @@ The application follows a microservices pattern with the following components:
 
 ### Technology Stack
 
+**Backend:**
 - **Spring Boot**: 3.3.5 (eureka, api-gateway, userservice) and 3.2.0 (notes-service)
 - **Java**: 21 (most services) and 17 (notes-service)
 - **Spring Cloud**: 2023.0.6
@@ -33,6 +35,13 @@ The application follows a microservices pattern with the following components:
 - **Service Discovery**: Netflix Eureka
 - **API Gateway**: Spring Cloud Gateway (reactive)
 - **Security**: notes-service uses Spring Security with OAuth2 resource server
+
+**Frontend:**
+- **React**: 19.2.0 with Vite build tool
+- **Font**: Heming variable monotype font
+- **Server**: Nginx (Alpine) for production
+- **Storage**: localStorage for client-side persistence
+- **Styling**: Custom CSS with modern design system
 
 ### Docker Deployment
 
@@ -126,6 +135,7 @@ mvn test -Dtest=UserServiceTest#testCreateUser
 
 ### Port Assignments
 
+- 3000: Frontend (Nginx)
 - 8761: Eureka Server
 - 8080: API Gateway
 - 8081: userservice
@@ -172,6 +182,15 @@ Each service follows standard Spring Boot layering:
 - Has validation dependencies
 - Spring Boot DevTools for development
 
+**frontend**:
+- React SPA with Vite bundler
+- Nginx reverse proxy configuration
+- Integrated with userservice and notes-service APIs
+- User management with create/switch functionality
+- Notes CRUD operations with real-time updates
+- Responsive design with mobile support
+- Custom header authentication (X-User-Id) for notes API
+
 ## Development Workflow
 
 1. **Adding New Features**: Follow the existing layered architecture (Controller → Service → Repository)
@@ -181,7 +200,41 @@ Each service follows standard Spring Boot layering:
 
 ## Accessing Services
 
-- Eureka Dashboard: http://localhost:8761
-- API Gateway: http://localhost:8080
-- Direct service access (development): http://localhost:8081, http://localhost:8082
-- Production routing: All requests through gateway at http://localhost:8080/{service-name}/*
+- **Frontend Application**: http://localhost:3000
+- **Eureka Dashboard**: http://localhost:8761
+- **API Gateway**: http://localhost:8080
+- **Direct service access** (development): http://localhost:8081, http://localhost:8082
+- **Production routing**: All requests through gateway at http://localhost:8080/{service-name}/*
+
+### Frontend Development
+
+```bash
+# Install dependencies
+cd frontend
+npm install
+
+# Run development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+```
+
+The frontend communicates with backend services:
+- API calls go through `http://localhost:8080` (API Gateway)
+- User service: `/userservice/api/users/*`
+- Notes service: `/notes-service/api/notes/*`
+- Notes API requires `X-User-Id` header for authentication
+- API service layer located in `frontend/src/services/api.js`
+
+Frontend Features:
+- User management modal for selecting/creating users
+- Notes CRUD operations with backend persistence
+- Real-time note updates
+- Pin/unpin notes
+- Tag support
+- Search functionality
+- Error handling with user feedback
