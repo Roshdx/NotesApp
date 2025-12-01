@@ -1,41 +1,174 @@
-Create network
+# NotesApp - Local Build and Run Commands
+
+## Prerequisites
+- Docker Desktop running
+- Maven installed
+- Node.js 20+ installed
+
+## Quick Start (Recommended: Use Docker Compose)
+docker-compose up -d --build
+
+## Manual Build and Run Commands
+
+### 1. Create Docker Network
 docker network create notes-net 2>/dev/null || true
 
-Run Mongo
+### 2. Run MongoDB
 docker run -d --name notes-mongo --network notes-net -p 27017:27017 -v mongo-data:/data/db mongo:6.0
 
-Build Eureka JAR
+### 3. Build All Backend JARs
 cd eureka-server && mvn -DskipTests clean package && cd ..
-
-Build API Gateway JAR
 cd api-gateway && mvn -DskipTests clean package && cd ..
-
-Build Userservice JAR
 cd userservice && mvn -DskipTests clean package && cd ..
+cd notes-service && mvn -DskipTests clean package && cd ..
 
-Build Eureka image
+### 4. Build All Docker Images
+
+# Eureka Server
 cd eureka-server && docker build -t notesapp-eureka-server:latest . && cd ..
 
-Build API Gateway image
+# API Gateway
 cd api-gateway && docker build -t notesapp-api-gateway:latest . && cd ..
 
-Build Userservice image
+# User Service
 cd userservice && docker build -t notesapp-userservice:latest . && cd ..
 
-Run Eureka
-docker run -d --name eureka-server --network notes-net -p 8761:8761 notesapp-eureka-server:latest
+# Notes Service
+cd notes-service && docker build -t notesapp-notes-service:latest . && cd ..
 
-Run API Gateway
-docker run -d --name api-gateway --network notes-net -p 8080:8080 notesapp-api-gateway:latest
+# Frontend
+cd frontend && docker build -t notesapp-frontend:latest . && cd ..
 
-Run Userservice
-docker run -d --name userservice --network notes-net -p 8081:8081 -e SPRING_DATA_MONGODB_URI=mongodb://notes-mongo:27017/notesdb notesapp-userservice:latest
+### 5. Run All Services (in order)
 
-Stop all three services
-docker stop eureka-server api-gateway userservice
+# Run Eureka Server (wait ~10 seconds before next service)
+docker run -d --name eureka-server --network notes-net -p 8761:8761 -e EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/ notesapp-eureka-server:latest
 
-Remove all three services
-docker rm eureka-server api-gateway userservice
+# Run API Gateway (wait for Eureka to be ready)
+docker run -d --name api-gateway --network notes-net -p 8080:8080 -e EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/ notesapp-api-gateway:latest
 
-Full reset (containers + images + network + volume)
-docker stop eureka-server api-gateway userservice notes-mongo 2>/dev/null || true && docker rm eureka-server api-gateway userservice notes-mongo 2>/dev/null || true && docker rmi notesapp-eureka-server:latest notesapp-api-gateway:latest notesapp-userservice:latest 2>/dev/null || true && docker network rm notes-net 2>/dev/null || true && docker volume rm mongo-data 2>/dev/null || true
+# Run User Service
+docker run -d --name userservice --network notes-net -p 8081:8081 -e SPRING_DATA_MONGODB_URI=mongodb://notes-mongo:27017/notesdb -e EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/ notesapp-userservice:latest
+
+# Run Notes Service
+docker run -d --name notes-service --network notes-net -p 8082:8082 -e SPRING_DATA_MONGODB_URI=mongodb://notes-mongo:27017/notesdb -e EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka-server:8761/eureka/ notesapp-notes-service:latest
+
+# Run Frontend
+docker run -d --name notes-frontend --network notes-net -p 3000:80 notesapp-frontend:latest
+
+### 6. Verify Services are Running
+docker ps
+
+# Expected output: 6 running containers
+# - notes-mongo (27017)
+# - eureka-server (8761)
+# - api-gateway (8080)
+# - userservice (8081)
+# - notes-service (8082)
+# - notes-frontend (3000)
+
+### 7. Access Services
+# Frontend: http://localhost:3000
+# Eureka Dashboard: http://localhost:8761
+# API Gateway: http://localhost:8080
+# MongoDB: mongodb://localhost:27017
+
+## Service Management
+
+### View Logs
+docker logs -f notes-frontend
+docker logs -f api-gateway
+docker logs -f userservice
+docker logs -f notes-service
+docker logs -f eureka-server
+docker logs -f notes-mongo
+
+### Stop All Services
+docker stop notes-frontend api-gateway userservice notes-service eureka-server notes-mongo
+
+### Start Existing Services
+docker start notes-mongo eureka-server api-gateway userservice notes-service notes-frontend
+
+### Remove All Services
+docker rm notes-frontend api-gateway userservice notes-service eureka-server notes-mongo
+
+### Rebuild Single Service
+# Example: Rebuild frontend
+cd frontend && docker build -t notesapp-frontend:latest . && cd ..
+docker stop notes-frontend
+docker rm notes-frontend
+docker run -d --name notes-frontend --network notes-net -p 3000:80 notesapp-frontend:latest
+
+## Development (Local Run without Docker)
+
+### Backend Services (run in separate terminals)
+
+# Terminal 1: Start local MongoDB
+mongod --dbpath=/path/to/data
+
+# Terminal 2: Eureka Server
+cd eureka-server && mvn spring-boot:run
+
+# Terminal 3: API Gateway (wait for Eureka to start)
+cd api-gateway && mvn spring-boot:run
+
+# Terminal 4: User Service
+cd userservice && mvn spring-boot:run
+
+# Terminal 5: Notes Service
+cd notes-service && mvn spring-boot:run
+
+### Frontend Development Server
+
+# Terminal 6: Frontend (Vite dev server on port 5173)
+cd frontend
+npm install
+npm run dev
+
+# Access at: http://localhost:5173
+# Make sure backend is running at http://localhost:8080
+
+## Full Reset (Clean Slate)
+
+### Remove Everything
+docker stop notes-frontend api-gateway userservice notes-service eureka-server notes-mongo 2>/dev/null || true
+docker rm notes-frontend api-gateway userservice notes-service eureka-server notes-mongo 2>/dev/null || true
+docker rmi notesapp-frontend:latest notesapp-api-gateway:latest notesapp-userservice:latest notesapp-notes-service:latest notesapp-eureka-server:latest 2>/dev/null || true
+docker network rm notes-net 2>/dev/null || true
+docker volume rm mongo-data 2>/dev/null || true
+
+### Then rebuild from scratch using docker-compose:
+docker-compose up -d --build
+
+## Troubleshooting
+
+### Check service health
+curl http://localhost:3000           # Frontend
+curl http://localhost:8761           # Eureka
+curl http://localhost:8080/actuator/health  # API Gateway
+curl http://localhost:8081/api/users/test   # User Service
+curl http://localhost:8082/actuator/health  # Notes Service
+
+### Check Eureka registry
+# Visit http://localhost:8761 and verify all services are registered
+
+### MongoDB access
+docker exec -it notes-mongo mongosh
+# Then: use notesdb
+#       db.users.find()
+#       db.notes.find()
+
+### View all networks
+docker network ls
+
+### Inspect notes-net network
+docker network inspect notes-net
+
+### Check container resource usage
+docker stats
+
+### Remove dangling images
+docker image prune -f
+
+### View detailed container info
+docker inspect notes-frontend
