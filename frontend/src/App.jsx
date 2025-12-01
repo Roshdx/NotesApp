@@ -331,7 +331,21 @@ function App() {
                     )}
                     <h3 className="note-item-title">{note.title}</h3>
                   </div>
-                  <span className="note-item-date">{formatDate(note.updatedAt || note.createdAt)}</span>
+                  <div className="note-item-actions">
+                    <span className="note-item-date">{formatDate(note.updatedAt || note.createdAt)}</span>
+                    <button
+                      className="btn-delete-note"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        deleteNote(note.id)
+                      }}
+                      title="Delete note"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M3 4H13M6 7V11M10 7V11M4 4L5 13H11L12 4M7 2H9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
                 <p className="note-item-preview">{getPreviewText(note.content)}</p>
                 {note.tags && note.tags.length > 0 && (

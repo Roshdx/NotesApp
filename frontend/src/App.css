@@ -203,6 +203,13 @@
   min-width: 0;
 }
 
+.note-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .pin-indicator {
   color: var(--accent-primary);
   flex-shrink: 0;
@@ -226,7 +233,31 @@
   font-size: 0.75rem;
   color: var(--text-tertiary);
   white-space: nowrap;
-  flex-shrink: 0;
+}
+
+.btn-delete-note {
+  padding: 4px;
+  color: var(--text-tertiary);
+  background: transparent;
+  border-radius: 4px;
+  opacity: 0;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.note-item:hover .btn-delete-note {
+  opacity: 1;
+}
+
+.btn-delete-note:hover {
+  color: #EF4444;
+  background-color: #FEE2E2;
+}
+
+.note-item.active .btn-delete-note {
+  opacity: 1;
 }
 
 .note-item-preview {
